@@ -75,8 +75,30 @@ Calibration::Calibration(const std::filesystem::path &config_path) {
   fs["resolution_y_per_board"] >> resolution_y_per_board_;
   fs["he_approach"] >> he_approach_;
   fs["fix_intrinsic"] >> fix_intrinsic_;
+  std::string aruco_dictionary;
+  if (!fs["aruco_dictionary"].empty())
+    fs["aruco_dictionary"] >> aruco_dictionary;
+  int legacy_pattern = 0;
+  if (!fs["charuco_legacy_pattern"].empty())
+    fs["charuco_legacy_pattern"] >> legacy_pattern;
 
   fs.release(); // close the input file
+#if MC_CALIB_USE_LEGACY_ARUCO_API
+  if (!legacy_pattern)
+    LOG_WARNING << "charuco_legacy_pattern: 0 is not supported with OpenCV < "
+                   "4.6; the legacy layout is used (relevant only for boards "
+                   "with an even number of rows)";
+#endif
+
+  const int dictionary_id = arucoDictionaryIdFromName(aruco_dictionary);
+  if (dictionary_id < 0) {
+    LOG_FATAL << "Unknown aruco_dictionary '" << aruco_dictionary
+              << "' (expected e.g. DICT_4X4_50, DICT_6X6_1000)";
+    return;
+  }
+  dict_ = cv::aruco::getPredefinedDictionary(dictionary_id);
+  LOG_INFO << "ArUco dictionary : "
+           << (aruco_dictionary.empty() ? "DICT_6X6_1000" : aruco_dictionary);
 
   // Check if multi-size boards are used or not
   if (boards_index.size() != 0) {
@@ -120,7 +142,7 @@ Calibration::Calibration(const std::filesystem::path &config_path) {
 
   const auto charuco_boards = createCharucoBoards(
       max_board_idx + 1, number_x_square_per_board_, number_y_square_per_board_,
-      length_square, length_marker, dict_);
+      length_square, length_marker, dict_, legacy_pattern != 0);
 
   for (unsigned int board_idx = 0u; board_idx < nb_board_; ++board_idx) {
     const int charuco_board_idx =

@@ -1,0 +1,59 @@
+%YAML:1.0
+# Extrinsic (+ intrinsic) calibration of two Intel RealSense D435i with overlapping views
+# using a single ChArUco board. Images captured with python_utils/capture_realsense_pair.py
+# Paths are relative to the folder where you run the calibrate binary (the build/ folder).
+
+######################################## Boards Parameters ###################################################
+# >>> EDIT to match YOUR printed board (the capture script
+#     preview tells you if the board is detected with these settings).
+aruco_dictionary: "DICT_4X4_1000"  # DICT_4X4_50/100/250/1000, DICT_5X5_*, DICT_6X6_* (default if omitted: DICT_6X6_1000)
+number_x_square: 9    # squares along X
+number_y_square: 6    # squares along Y
+charuco_legacy_pattern: 0  # 1 = pre-OpenCV-4.6 layout (matters only when number_y_square is even; the capture preview tells you which one your board uses)
+resolution_x: 1800    # only used to generate a board image (generate_charuco)
+resolution_y: 1200
+# Marker size: put the measured square side and marker side (same unit) here.
+# MC-Calib only uses their RATIO (marker/square) to locate the corners.
+length_square: 0.030  # square side (30 mm)
+length_marker: 0.023  # marker side (23 mm)
+number_board: 1
+# Marker ids: board 0 uses ids 0..N-1, board 1 the next N ids, etc.
+# (N = floor(number_x_square*number_y_square/2)). If your board's first id is 0, keep [].
+# If its first id is k*N, set boards_index: [k].
+boards_index: []
+# Metric scale: the calibration (and the camera-to-camera translation) is
+# expressed in the unit of square_size.
+square_size: 0.030    # measured square side in METERS (30 mm)
+
+number_x_square_per_board: []
+number_y_square_per_board: []
+square_size_per_board: []
+
+######################################## Camera Parameters ###################################################
+distortion_model: 0   # 0: Brown (perspective) - correct for the D435i color/IR sensors
+distortion_per_camera: []
+number_camera: 2
+refine_corner: 1
+min_perc_pts: 0.4     # min fraction of board corners visible to accept a detection
+
+cam_params_path: "None"  # intrinsics are estimated jointly
+fix_intrinsic: 0
+
+######################################## Images Parameters ###################################################
+root_path: "../data/D435i_stereo/images"   # contains Cam_001/ and Cam_002/
+cam_prefix: "Cam_"
+keypoints_path: "None"   # after a first run you can use "../data/D435i_stereo/results/detected_keypoints_data.yml"
+
+######################################## Optimization Parameters ###################################################
+quaternion_averaging: 1
+ransac_threshold: 3
+number_iterations: 1000
+
+######################################## Hand-eye method #############################################
+he_approach: 0
+
+######################################## Output Parameters ###################################################
+save_path: "../data/D435i_stereo/results"
+save_detection: 1
+save_reprojection: 1
+camera_params_file_name: ""

@@ -113,6 +113,18 @@ Documentation is available [online](https://codedocs.xyz/rameau-fr/MC-Calib/). T
 	python3 python_utils/post_calibration_analysis.py -d save_path_from_calib_param.yml
 	```
 
+### Example: two Intel RealSense D435i (overlapping views)
+
+1. Install the capture dependencies: `pip install pyrealsense2 opencv-python`.
+2. Edit [configs/RealSense/calib_param_D435i_stereo.yml](configs/RealSense/calib_param_D435i_stereo.yml): `number_x_square`, `number_y_square`, the marker/square ratio (`length_marker`/`length_square`) and the measured `square_size` (in meters) and `aruco_dictionary` (e.g. `DICT_4X4_1000`) of your ChArUco board.
+3. Capture synchronized pairs (run from the repository root, cameras rigidly mounted):
+   ```bash
+   python3 python_utils/capture_realsense_pair.py --out data/D435i_stereo/images --dict DICT_4X4_1000 --squares-x 9 --squares-y 6 --marker-ratio 0.7333
+   ```
+   Press `SPACE` to save a pair (or `a` for auto-capture), `q` to quit. Keep the board still when saving (rolling-shutter color sensor) and collect 40-80 pairs at varied distances/orientations covering the whole image. Add `--stream ir` to calibrate the left IR (depth) imagers instead.
+4. Calibrate (from `build/`): `./apps/calibrate/calibrate ../configs/RealSense/calib_param_D435i_stereo.yml`
+5. `data/D435i_stereo/results/calibrated_cameras_data.yml` -> `camera_1/camera_pose_matrix` is the pose of `Cam_002` expressed in the `Cam_001` frame.
+
 ## Calibration file
 
 For multiple camera calibration configuration examples see `configs/*.yml`.  For easier start, just duplicate the most relevant setup and fill with details.

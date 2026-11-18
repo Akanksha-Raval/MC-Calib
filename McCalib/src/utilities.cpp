@@ -1,5 +1,7 @@
 #include "utilities.hpp"
 
+#include <algorithm>
+#include <cctype>
 #include <numeric>
 
 namespace McCalib {
@@ -32,6 +34,43 @@ convertVecStrToVecPath(const std::vector<std::string> &input) {
   return out;
 }
 
+/**
+ * @brief Convert an ArUco dictionary name to its OpenCV predefined id.
+ *
+ * @param name Dictionary name, e.g. "DICT_4X4_50" (prefix "DICT_" optional).
+ * @return OpenCV dictionary id, DICT_6X6_1000 if empty, -1 if unknown.
+ */
+int arucoDictionaryIdFromName(const std::string &name) {
+  if (name.empty())
+    return cv::aruco::DICT_6X6_1000;
+  std::string key = name;
+  std::transform(key.begin(), key.end(), key.begin(),
+                 [](unsigned char c) { return std::toupper(c); });
+  if (key.rfind("DICT_", 0) != 0)
+    key = "DICT_" + key;
+  static const std::map<std::string, int> dictionaries = {
+      {"DICT_4X4_50", cv::aruco::DICT_4X4_50},
+      {"DICT_4X4_100", cv::aruco::DICT_4X4_100},
+      {"DICT_4X4_250", cv::aruco::DICT_4X4_250},
+      {"DICT_4X4_1000", cv::aruco::DICT_4X4_1000},
+      {"DICT_5X5_50", cv::aruco::DICT_5X5_50},
+      {"DICT_5X5_100", cv::aruco::DICT_5X5_100},
+      {"DICT_5X5_250", cv::aruco::DICT_5X5_250},
+      {"DICT_5X5_1000", cv::aruco::DICT_5X5_1000},
+      {"DICT_6X6_50", cv::aruco::DICT_6X6_50},
+      {"DICT_6X6_100", cv::aruco::DICT_6X6_100},
+      {"DICT_6X6_250", cv::aruco::DICT_6X6_250},
+      {"DICT_6X6_1000", cv::aruco::DICT_6X6_1000},
+      {"DICT_7X7_50", cv::aruco::DICT_7X7_50},
+      {"DICT_7X7_100", cv::aruco::DICT_7X7_100},
+      {"DICT_7X7_250", cv::aruco::DICT_7X7_250},
+      {"DICT_7X7_1000", cv::aruco::DICT_7X7_1000},
+      {"DICT_ARUCO_ORIGINAL", cv::aruco::DICT_ARUCO_ORIGINAL},
+  };
+  const auto it = dictionaries.find(key);
+  return it == dictionaries.end() ? -1 : it->second;
+}
+
 #if MC_CALIB_USE_LEGACY_ARUCO_API
 
 /**
@@ -53,7 +92,8 @@ createCharucoBoards(const unsigned int num_board,
                     const std::vector<int> &number_x_square_per_board,
                     const std::vector<int> &number_y_square_per_board,
                     const float length_square, const float length_marker,
-                    const cv::Ptr<cv::aruco::Dictionary> dict) {
+                    const cv::Ptr<cv::aruco::Dictionary> dict,
+                    const bool /*legacy_pattern*/) {
   std::map<int, cv::Ptr<cv::aruco::CharucoBoard>> charuco_boards;
   int offset_count = 0;
   for (std::size_t i = 0; i < num_board; i++) {
@@ -93,13 +133,15 @@ createCharucoBoardsImages(const unsigned int num_board,
                           const std::vector<int> &number_y_square_per_board,
                           const float length_square, const float length_marker,
                           const std::vector<int> &resolution_x_per_board,
-                          const std::vector<int> &resolution_y_per_board) {
+                          const std::vector<int> &resolution_y_per_board,
+                          const int dictionary_id,
+                          const bool legacy_pattern) {
   cv::Ptr<cv::aruco::Dictionary> dict =
-      cv::aruco::getPredefinedDictionary(cv::aruco::DICT_6X6_1000);
+      cv::aruco::getPredefinedDictionary(dictionary_id);
   const std::map<int, cv::Ptr<cv::aruco::CharucoBoard>> charuco_boards =
       createCharucoBoards(num_board, number_x_square_per_board,
                           number_y_square_per_board, length_square,
-                          length_marker, dict);
+                          length_marker, dict, legacy_pattern);
 
   std::vector<cv::Mat> charuco_boards_images;
   charuco_boards_images.reserve(num_board);
@@ -134,7 +176,8 @@ createCharucoBoards(const unsigned int num_board,
                     const std::vector<int> &number_x_square_per_board,
                     const std::vector<int> &number_y_square_per_board,
                     const float length_square, const float length_marker,
-                    const cv::aruco::Dictionary &dict) {
+                    const cv::aruco::Dictionary &dict,
+                    const bool legacy_pattern) {
   std::map<int, cv::Ptr<cv::aruco::CharucoBoard>> charuco_boards;
   int offset_count = 0;
   for (std::size_t i = 0; i < num_board; i++) {
@@ -163,6 +206,15 @@ createCharucoBoards(const unsigned int num_board,
                                   length_square, length_marker, dict, cur_ids));
     }
   }
+#if MC_CALIB_OPENCV_AT_LEAST(4, 8)
+  // OpenCV >= 4.6 changed the square layout of boards with an even number of
+  // rows; the legacy flag restores the pre-4.6 layout.
+  for (auto &it : charuco_boards) {
+    it.second->setLegacyPattern(legacy_pattern);
+  }
+#else
+  (void)legacy_pattern;
+#endif
   assert(charuco_boards.size() == num_board);
   return charuco_boards;
 }
@@ -185,13 +237,15 @@ createCharucoBoardsImages(const unsigned int num_board,
                           const std::vector<int> &number_y_square_per_board,
                           const float length_square, const float length_marker,
                           const std::vector<int> &resolution_x_per_board,
-                          const std::vector<int> &resolution_y_per_board) {
+                          const std::vector<int> &resolution_y_per_board,
+                          const int dictionary_id,
+                          const bool legacy_pattern) {
   const cv::aruco::Dictionary dict =
-      cv::aruco::getPredefinedDictionary(cv::aruco::DICT_6X6_1000);
+      cv::aruco::getPredefinedDictionary(dictionary_id);
   const std::map<int, cv::Ptr<cv::aruco::CharucoBoard>> charuco_boards =
       createCharucoBoards(num_board, number_x_square_per_board,
                           number_y_square_per_board, length_square,
-                          length_marker, dict);
+                          length_marker, dict, legacy_pattern);
 
   std::vector<cv::Mat> charuco_boards_images;
   charuco_boards_images.reserve(num_board);

@@ -77,8 +77,22 @@ int main(int argc, char *argv[]) {
   fs["number_y_square_per_board"] >> number_y_square_per_board;
   fs["resolution_x_per_board"] >> resolution_x_per_board;
   fs["resolution_y_per_board"] >> resolution_y_per_board;
+  std::string aruco_dictionary;
+  if (!fs["aruco_dictionary"].empty())
+    fs["aruco_dictionary"] >> aruco_dictionary;
+  int legacy_pattern = 0;
+  if (!fs["charuco_legacy_pattern"].empty())
+    fs["charuco_legacy_pattern"] >> legacy_pattern;
 
   fs.release(); // close the input file
+
+  const int dictionary_id =
+      McCalib::arucoDictionaryIdFromName(aruco_dictionary);
+  if (dictionary_id < 0) {
+    std::cout << "Unknown aruco_dictionary '" << aruco_dictionary << "'"
+              << std::endl;
+    return -1;
+  }
 
   // Check if multi-size boards are used or not
   if (square_size_per_board.size() == 0) {
@@ -94,7 +108,7 @@ int main(int argc, char *argv[]) {
       McCalib::createCharucoBoardsImages(
           num_board, number_x_square_per_board, number_y_square_per_board,
           length_square, length_marker, resolution_x_per_board,
-          resolution_y_per_board);
+          resolution_y_per_board, dictionary_id, legacy_pattern != 0);
   saveBoards(charuco_boards_images);
 
   return 0;

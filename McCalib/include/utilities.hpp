@@ -27,6 +27,17 @@ std::filesystem::path convertStrToPath(const std::string &item_name);
 std::vector<std::filesystem::path>
 convertVecStrToVecPath(const std::vector<std::string> &input);
 
+/**
+ * @brief Convert an ArUco dictionary name (e.g. "DICT_4X4_50") to its OpenCV
+ * predefined dictionary id.
+ *
+ * An empty string returns the default DICT_6X6_1000. Unknown names return -1.
+ *
+ * @param name Dictionary name, with or without the "DICT_" prefix.
+ * @return OpenCV predefined dictionary id, or -1 if unknown.
+ */
+int arucoDictionaryIdFromName(const std::string &name);
+
 #if MC_CALIB_USE_LEGACY_ARUCO_API
 
 /**
@@ -38,6 +49,8 @@ convertVecStrToVecPath(const std::vector<std::string> &input);
  * @param length_square Square side length in user units.
  * @param length_marker Marker side length in user units.
  * @param dict ArUco dictionary used by all generated boards.
+ * @param legacy_pattern Use the OpenCV < 4.6 square layout (only matters for
+ * boards with an even number of rows; always true with the legacy API).
  * @return Map keyed by board id with allocated Charuco board descriptors.
  */
 std::map<int, cv::Ptr<cv::aruco::CharucoBoard>>
@@ -45,7 +58,8 @@ createCharucoBoards(const unsigned int num_board,
                     const std::vector<int> &number_x_square_per_board,
                     const std::vector<int> &number_y_square_per_board,
                     const float length_square, const float length_marker,
-                    const cv::Ptr<cv::aruco::Dictionary> dict);
+                    const cv::Ptr<cv::aruco::Dictionary> dict,
+                    const bool legacy_pattern = true);
 #else
 /**
  * @brief Create one OpenCV Charuco board descriptor per board id.
@@ -56,6 +70,8 @@ createCharucoBoards(const unsigned int num_board,
  * @param length_square Square side length in user units.
  * @param length_marker Marker side length in user units.
  * @param dict ArUco dictionary used by all generated boards.
+ * @param legacy_pattern Use the OpenCV < 4.6 square layout (only matters for
+ * boards with an even number of rows; always true with the legacy API).
  * @return Map keyed by board id with allocated Charuco board descriptors.
  */
 std::map<int, cv::Ptr<cv::aruco::CharucoBoard>>
@@ -63,7 +79,8 @@ createCharucoBoards(const unsigned int num_board,
                     const std::vector<int> &number_x_square_per_board,
                     const std::vector<int> &number_y_square_per_board,
                     const float length_square, const float length_marker,
-                    const cv::aruco::Dictionary &dict);
+                    const cv::aruco::Dictionary &dict,
+                    const bool legacy_pattern = false);
 #endif
 
 /**
@@ -76,14 +93,18 @@ createCharucoBoards(const unsigned int num_board,
  * @param length_marker Marker side length in user units.
  * @param resolution_x_per_board Output width per board image.
  * @param resolution_y_per_board Output height per board image.
+ * @param dictionary_id OpenCV predefined ArUco dictionary id.
+ * @param legacy_pattern Use the OpenCV < 4.6 square layout (new API only).
  * @return Vector of rendered board images.
  */
-std::vector<cv::Mat>
-createCharucoBoardsImages(const unsigned int num_board,
-                          const std::vector<int> &number_x_square_per_board,
-                          const std::vector<int> &number_y_square_per_board,
-                          const float length_square, const float length_marker,
-                          const std::vector<int> &resolution_x_per_board,
-                          const std::vector<int> &resolution_y_per_board);
+std::vector<cv::Mat> createCharucoBoardsImages(
+    const unsigned int num_board,
+    const std::vector<int> &number_x_square_per_board,
+    const std::vector<int> &number_y_square_per_board,
+    const float length_square, const float length_marker,
+    const std::vector<int> &resolution_x_per_board,
+    const std::vector<int> &resolution_y_per_board,
+    const int dictionary_id = cv::aruco::DICT_6X6_1000,
+    const bool legacy_pattern = false);
 
 } // namespace McCalib

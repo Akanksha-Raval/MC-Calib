@@ -44,6 +44,16 @@ BOOST_AUTO_TEST_CASE(CheckConvertVecStrToVecPathEmptyInput) {
   BOOST_CHECK_EQUAL(output.size(), 0);
 }
 
+BOOST_AUTO_TEST_CASE(CheckArucoDictionaryIdFromName) {
+  BOOST_CHECK_EQUAL(McCalib::arucoDictionaryIdFromName(""),
+                    cv::aruco::DICT_6X6_1000);
+  BOOST_CHECK_EQUAL(McCalib::arucoDictionaryIdFromName("DICT_4X4_50"),
+                    cv::aruco::DICT_4X4_50);
+  BOOST_CHECK_EQUAL(McCalib::arucoDictionaryIdFromName("4x4_1000"),
+                    cv::aruco::DICT_4X4_1000);
+  BOOST_CHECK_EQUAL(McCalib::arucoDictionaryIdFromName("DICT_9X9_50"), -1);
+}
+
 BOOST_AUTO_TEST_CASE(CheckCreateCharucoBoardsCountAndIdOffset) {
 #if MC_CALIB_USE_LEGACY_ARUCO_API
   cv::Ptr<cv::aruco::Dictionary> dict =
